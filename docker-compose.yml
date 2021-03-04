@@ -1,0 +1,40 @@
+version : '3'
+
+services:
+  clientui:
+    build:
+      context: ./client-ui
+    image: pyclient-ui:v1
+    ports:
+      - 7000:7000
+    depends_on:
+      - client
+
+  client:
+    build:
+      context: ./client
+    image: pyclient:v1
+    ports:
+      - 5000:5000
+    depends_on:
+      - server
+
+
+  server:
+    build:
+      context: ./server
+    image: pyserver:v1
+    ports:
+      - 80:80
+    depends_on:
+      - server_decrypt
+
+  server_decrypt:
+    build:
+      context: ./server_decrypt
+    image: pyserver_decrypt:v1
+    ports:
+      - 90:90
+
+
+

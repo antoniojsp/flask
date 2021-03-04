@@ -1,0 +1,121 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Sample App - Homomorphic Encryption</title>
+    <!-- Change the localhost:5000 to a different host:port if you run client on a different host:port. 
+     This sample suppose to run on dev box so localhost and default port 5000 makes sense. -->
+    <link   href="http://localhost:5000/css/bootstrap.min.css" rel="stylesheet">
+    <link   href="http://localhost:5000/css/jumbotron-narrow.css" rel="stylesheet">
+    <script type="text/javascript"
+            src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js">
+    </script>
+    <script type="text/javascript">
+
+//loop through the selections (normally just one)
+function getRadioVal(form, name) {
+    var selection = -1;
+    var radios = form.elements[name]; /// it can only select one
+    for (var i=0, len=radios.length; i<len; i++) {
+        if ( radios[i].checked ) { //  checked?
+            selection = radios[i].value; // 
+            break; //stop
+        }
+    }
+    console.log(selection);
+    return selection; // return value of checked radio or undefined if none checked
+}
+
+  $(document).ready(function() {
+    $("#btnSubmit").click(function(){
+          var obj = new Object();
+
+                obj.input = getRadioVal( document.getElementById('candidates'), 'candidate' );
+                obj.hash = document.getElementById('hash').value;
+                obj.id_num = document.getElementById('id_num').value;
+                obj.dns = "http://server"; //Change the dns if you change the naem of service inside docker-compose file.
+
+          var input_json = JSON.stringify(obj);
+          $.ajax({
+                    type: 'post',
+                      headers: {
+                                    "Accept" : "application/json",
+                                    "Content-type": "application/json"
+                                },
+                      url: 'http://localhost:5000', //Change the url if you run client on a different host/port. Default is 5000.
+                      data: input_json,
+                      dataType: 'json',
+                      success: function(data) {
+                    console.log(data)
+                      $("#output_chl_level").html(data.output);
+                    //   location.reload();
+
+                      }
+
+                 });
+
+            });
+        });
+
+    </script>
+
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <nav>
+                <ul class="nav nav-pills pull-right">
+                    <!-- <li role="presentation" class="active"><a href="#">Home</a></li> -->
+                </ul>
+            </nav>
+        </div>
+
+
+        <h1>Votes</h1>
+
+        <a href="{{url_for('index') }}">Index</a>
+        <a href="{{url_for('new') }}">New</a>
+        <a href="{{url_for('results') }}">Results</a>
+        <a href="{{url_for('register_voter') }}">Register</a>
+
+
+        <div class="jumbotron">
+
+        <label for="votes">Choose a candidate:</label>
+
+        <form id="candidates">
+
+            <input type="radio" id="candidate" name="candidate" value="0"
+             >
+            <label for="1">Alice</label>
+            <input type="radio" id="candidate" name="candidate" value="1"
+            >
+            <label for="2">Bob</label>
+            <input type="radio" id="candidate" name="candidate" value="2"
+            >
+            <label for="3">Charlie</label>
+            <input type="radio" id="candidate" name="candidate" value="3"
+            >
+            <label for="4">Daniel</label>
+
+            <div>    
+                <label for="id_num">Id number: </label>
+                <input type="text" id="id_num" name="id_num" maxlength="8" required> 
+            </div>
+            <div>    
+                <label for="hash">Hash: </label>
+                <input type="text" id="hash" name="hash" maxlength="50" required> 
+            </div>
+
+            <p><a class="btn btn-lg btn-success" role="button" id="btnSubmit">Vote</a></p>
+            <p class="lead" id="output_chl_level"></p>
+
+        </form>
+
+        </div>
+
+        <footer class="footer">
+        </footer>
+    </div>
+</body>
+</html>

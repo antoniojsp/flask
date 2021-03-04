@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>Votes</title>
+
+
+  </head>
+  <body>
+    <!-- navbar -->
+    <!-- page content -->
+    <div>
+      <a href="{{url_for('index') }}">Index</a>
+      <a href="{{url_for('new') }}">New</a>
+      <a href="{{url_for('results') }}">Results</a>
+      <a href="{{url_for('register_voter') }}">Register</a>
+
+  </div>
+    <div class="container">
+      <div class="row">
+          <div class="col-lg-12">
+              {% block content %}
+              {% endblock %}
+          </div>
+      </div>
+    </div>
+
+    <!-- other stuff -->
+    <footer>
+
+    </footer>
+
+  </body>
+</html>

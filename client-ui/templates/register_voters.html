@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+
+
+{% for message in get_flashed_messages() %}
+<p><b>{{ message }}</b></p>
+{% endfor %}
+</fieldset>
+
+<form action="" method="post" id="newplan">
+    <fieldset>
+        <legend>Register Voter:</legend>
+
+        <div>    
+            <label for="First name">First name: </label>
+            <input type="text" id="fname" name="fname" maxlength="50" required> 
+        </div>
+    
+        <div>    
+            <label for="Last name">Last name: </label>
+            <input type="text" id="lname" name="lname" maxlength="50" required> 
+        </div>
+        <div>    
+            <label for="Birthday">Birth date: </label>
+            <input type="date" id="bday" name="bday" maxlength="50" required> 
+        </div>
+        <div>    
+            <label for="Id">Id: </label>
+            <input type="number" id="id" name="id" maxlength="50" required> 
+        </div>
+        <input type="submit" value="Submit">
+
+    
+  </form>
+
+
+{% endblock content %}

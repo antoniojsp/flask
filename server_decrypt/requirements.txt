@@ -1,0 +1,7 @@
+phe
+Flask-API
+pymongo
+dnspython
+flask_cors
+requests
+pyopenssl
