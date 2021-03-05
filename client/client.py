@@ -34,6 +34,10 @@ def encrypt(public, input):
     # return json.dumps(enc_temp)
     return enc_temp
 
+def get_key(url):
+    key = requests.post(url) #request a public key from the server_encrypt to encrypt the ballot
+    return json.loads(key.text) #loads public key from the server for encryptation.
+
 
 @app.route("/", methods=['GET','POST'])
 def process():
@@ -62,10 +66,11 @@ def process():
                 app.logger.info(confirmation)
                 return confirmation
 
-
             vote_list[int(data['input'])] = 1 # add 1 to the index number of the candidate choosen
-            key = requests.post('http://server_decrypt:90/key') # request a public key from the server_decrypt to encrypt the ballot
-            llave  = json.loads(key.text) # gets public key from the server_encrypt for encryptation 
+
+            url_key = 'http://server_decrypt:90/key'
+            llave  = get_key(url_key) # gets public key from the server_encrypt for encryptation 
+
             public_key_rec = paillier.PaillierPublicKey(n=int(llave['public_key']['n'])) # create public key obj from the key sent by the server
 
             ballot  = encrypt(public_key_rec, vote_list)

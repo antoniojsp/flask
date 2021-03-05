@@ -51,13 +51,18 @@ def add_vote(tally_encrypt:list, vote_received_encrypt:list):#send public key to
     for i in range(len(tally_encrypt)): #perform an addition bewtween the value in the tally and the value in the vote (same position indicates same candidate)
         tally_encrypt[i]+= vote_received_encrypt[i]
 
-def search_voter_registration(id):
+def search_voter_registration(id: str):
 
     for i in voters_info.find({'id':id}):# look up for the public key in the Authority database
         pub_key = i['pk']
         has_voted = i['has_votes']
 
     return pub_key, has_voted
+
+def get_key(url):
+    key = requests.post(url) #request a public key from the server_encrypt to encrypt the ballot
+    return json.loads(key.text) #loads public key from the server for encryptation.
+                
 
 '''
 Handles the process to add a vote to the tally
@@ -76,7 +81,8 @@ def process():
 
     if request.method == 'POST':
 
-        vote_encrypted = json.loads(request.data) # gets the encrypted ballots from the client
+        vote_encrypted = json.loads(request.data) # gets encrypted ballot, id and secret mesage.
+            
         try: # in case of failure, returns an output with the message "Failure", otherwise, "Success
 
             id_value = vote_encrypted[1] # id of the voter
@@ -91,12 +97,18 @@ def process():
 
             if voters_info.count_documents({ "id": id_value }, limit = 1) != 0: # checks if the voter has been already register.
                 voter_key, has_voted = search_voter_registration(id_value)
-
+                if has_voted == True: # user has already cast a vote
+                    temp = {}
+                    temp['output'] = "Failure! Voter has alerady voted." # confirmation
+                    results = json.dumps(temp)
+                    return results
                 # deciphering message from client. Client used its private key and Server use the public key storage in its database
+                
                 key = RSA.import_key(voter_key)
                 h = SHA256.new(mensaje.encode())
-
                 decoded = base64.b64decode(encrypted_message)
+
+
                 try:
                     pkcs1_15.new(key).verify(h, decoded)
                     good_key = True
@@ -109,22 +121,13 @@ def process():
                     results = json.dumps(temp)
                     return results
 
-
-
-
-                if has_voted == True: # user has already cast a vote
-                    temp = {}
-                    temp['output'] = "Failure! Voter has alerady voted." # confirmation
-                    results = json.dumps(temp)
-                    return results
-
                 '''
                 Gets public key from the decrypt_server. It is used to encrypt ballots
                 '''
-                key = requests.post('http://server_decrypt:90/key') #request a public key from the server_encrypt to encrypt the ballot
-                llave  = json.loads(key.text) #loads public key from the server for encryptation. 
-                public_key_rec = paillier.PaillierPublicKey(n=int(llave['public_key']['n']))#create public key obj from the key sent by the server
+                url_key = 'http://server_decrypt:90/key'
+                llave = get_key(url_key) #gets public key from server_decrypt to perform H.E.
 
+                public_key_rec = paillier.PaillierPublicKey(n=int(llave['public_key']['n']))#create public key obj from the key sent by the server
 
                 vote_received_enc = [paillier.EncryptedNumber(public_key_rec, int(x[0]), int(x[1])) for x in vote_encrypted[0]['values']] # convert the cipher values received front the 
 
@@ -135,10 +138,8 @@ def process():
                 add_vote(encriptado_temp, vote_received_enc) # add the ballot to the tally
                 cipher_values = [str(i.ciphertext()) for i in encriptado_temp] # creates list with the ciphertext to be stored in mongodb
 
-                now = datetime.now()
-                timestamp = datetime.timestamp(now)
+                tally_votes.insert_one({"timestamp":datetime.timestamp(datetime.now()), "votes":cipher_values}) # insert value to
 
-                tally_votes.insert_one({"timestamp":now, "votes":cipher_values}) # insert value to
                 voters_info.update_one({'id':id_value}, {"$set":{"has_votes":True}})
                 temp = {}
                 temp['output'] = "Success!" # confirmation
