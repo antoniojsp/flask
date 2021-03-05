@@ -7,6 +7,7 @@
      This sample suppose to run on dev box so localhost and default port 5000 makes sense. -->
     <link   href="http://localhost:5000/css/bootstrap.min.css" rel="stylesheet">
     <link   href="http://localhost:5000/css/jumbotron-narrow.css" rel="stylesheet">
+
     <script type="text/javascript"
             src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js">
     </script>
@@ -31,7 +32,7 @@ function getRadioVal(form, name) {
           var obj = new Object();
 
                 obj.input = getRadioVal( document.getElementById('candidates'), 'candidate' );
-                obj.hash = document.getElementById('hash').value;
+                // obj.hash = document.getElementById('hash').value;
                 obj.id_num = document.getElementById('id_num').value;
                 obj.dns = "http://server"; //Change the dns if you change the naem of service inside docker-compose file.
 
@@ -73,11 +74,6 @@ function getRadioVal(form, name) {
 
         <h1>Votes</h1>
 
-        <a href="{{url_for('index') }}">Index</a>
-        <a href="{{url_for('new') }}">New</a>
-        <a href="{{url_for('results') }}">Results</a>
-        <a href="{{url_for('register_voter') }}">Register</a>
-
 
         <div class="jumbotron">
 
@@ -102,12 +98,14 @@ function getRadioVal(form, name) {
                 <label for="id_num">Id number: </label>
                 <input type="text" id="id_num" name="id_num" maxlength="8" required> 
             </div>
-            <div>    
+
+            <!-- <div>    
                 <label for="hash">Hash: </label>
                 <input type="text" id="hash" name="hash" maxlength="50" required> 
-            </div>
+            </div> -->
 
             <p><a class="btn btn-lg btn-success" role="button" id="btnSubmit">Vote</a></p>
+
             <p class="lead" id="output_chl_level"></p>
 
         </form>

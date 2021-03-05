@@ -1,0 +1,38 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Sample App - Homomorphic Encryption</title>
+    <!-- Change the localhost:5000 to a different host:port if you run client on a different host:port. 
+     This sample suppose to run on dev box so localhost and default port 5000 makes sense. -->
+    <link   href="http://localhost:5000/css/bootstrap.min.css" rel="stylesheet">
+    <link   href="http://localhost:5000/css/jumbotron-narrow.css" rel="stylesheet">
+    <script type="text/javascript"
+            src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js">
+    </script>
+
+
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <nav>
+                <ul class="nav nav-pills pull-right">
+                    <!-- <li role="presentation" class="active"><a href="#">Home</a></li> -->
+                </ul>
+            </nav>
+        </div>
+
+
+        <h1>Control panel</h1>
+
+        <a href="{{url_for('index') }}">Index</a>
+        <a href="{{url_for('new') }}">Reset to Zero</a>
+        <a href="{{url_for('results') }}">Show results</a>
+        <a href="{{url_for('register_voter') }}">Register New Voter</a>
+
+        <footer class="footer">
+        </footer>
+    </div>
+</body>
+</html>

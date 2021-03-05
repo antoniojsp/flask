@@ -36,8 +36,10 @@ def index():
 # return results from server_decrypt
 @app.route('/results', methods=['POST','GET'])
 def results():
-    resultados = requests.post('http://server_decrypt:90/results').text #request the results of the tally from the server. The server handles the counting of the data encrypted
-    return render_template('results.html', lista=resultados)
+    resultados = requests.post('http://server_decrypt:90/results').json() #request the results of the tally from the server. The server handles the counting of the data encrypted
+    app.logger.info(type(resultados))
+    
+    return render_template('results.html', lista=resultados['output'])
 
 # reset too zero
 @app.route("/new", methods=["POST","GET"])
@@ -45,6 +47,13 @@ def new():
     #delete the tally from mongodb and fill up a new one with all the stats in zero (encrypted)
     requests.post('http://server_decrypt:90/new').text
     return render_template("home.html")
+
+@app.route("/panel", methods=["POST","GET"])
+def panel():
+    #delete the tally from mongodb and fill up a new one with all the stats in zero (encrypted)
+    return render_template("control_panel.html")
+
+
 
 #create keys
 # keyPair = RSA.generate(3072)

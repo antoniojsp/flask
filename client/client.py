@@ -49,11 +49,19 @@ def process():
 
             vote_list = [0,0,0,0] # representation of a ballot. Each index represent a cadidate. We enforce one vote per ballot by using droplist in the frontend
             
+            #checks if no selection is made
             if int(data['input']) == -1:
                 results = {"output":"No selection"}
                 confirmation = json.dumps(results)
                 app.logger.info(confirmation)
                 return confirmation
+            #checks if no id number was entered
+            if data['id_num'] == "":
+                results = {"output":"Enter a valid Id"}
+                confirmation = json.dumps(results)
+                app.logger.info(confirmation)
+                return confirmation
+
 
             vote_list[int(data['input'])] = 1 # add 1 to the index number of the candidate choosen
             key = requests.post('http://server_decrypt:90/key') # request a public key from the server_decrypt to encrypt the ballot
@@ -62,11 +70,7 @@ def process():
 
             ballot  = encrypt(public_key_rec, vote_list)
             code = ballot['values']
-
-            # codigo = str(code[0][0]) + str(code[1][0]) + str(code[2][0]) 
-            # app.logger.info(codigo)
-
-
+            
             '''
             TEMP:
             Sign communications
@@ -76,11 +80,11 @@ def process():
             h = SHA256.new(message.encode())
             signature = pkcs1_15.new(key).sign(h)
             encoded = base64.b64encode(signature).decode('ascii')
-
+            
             '''
             "paquete" contains the encrypted ballor, the hash, the id and the encoded message
             '''
-            paquete = [ballot, data['hash'], data['id_num'], encoded]
+            paquete = [ballot, data['id_num'], encoded]
             
             temp = requests.post('http://server',json = json.dumps(paquete))#send data to the server to be added to the tally. Data is already encrypted encrypted.
             results = json.loads(temp.text) #gets sucess or fail, depents on the results of the vote counting 
@@ -90,9 +94,9 @@ def process():
             return confirmation
 
 
-# @app.route("/css/<path:filename>")
-# def send_file(filename):
-#     return send_from_directory('css', filename)
+@app.route("/css/<path:filename>")
+def send_file(filename):
+    return send_from_directory('css', filename)
 
 
 if __name__ == "__main__":

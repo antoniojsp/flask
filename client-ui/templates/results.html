@@ -1,6 +1,21 @@
 {% extends "base.html" %}
 {% block content %}
 
-{{lista}}
+<h1>Elections results</h1>
+<table style="width:100%"  style="border:1px solid black">
+    <tr>
+      <th>Alice</th>
+      <th>Bob</th>
+      <th>Charlie</th>
+      <th>Daniel</th>
+
+    </tr>
+    <tr>
+      <td>{{lista.0}}</td>
+      <td>{{lista.1}}</td>
+      <td>{{lista.2}}</td>
+      <td>{{lista.3}}</td>
+    </tr>
+  </table>
 
 {% endblock content %}
