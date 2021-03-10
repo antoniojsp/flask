@@ -1,8 +1,22 @@
 {% extends "base.html" %}
 {% block content %}
 
+<style>
+    table, th, td {
+      border: 1px solid black;
+
+    }
+
+    th {
+  display: table-cell;
+  vertical-align: inherit;
+  font-weight: bold;
+  text-align: center;
+}
+</style>
+
 <h1>Elections results</h1>
-<table style="width:100%"  style="border:1px solid black">
+<table style="width:100%" >
     <tr>
       <th>Alice</th>
       <th>Bob</th>

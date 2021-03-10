@@ -1,4 +1,4 @@
-from flask import Flask, render_template, json, request, flash
+from flask import Flask, render_template, json, request, flash, redirect, url_for
 import requests
 import os
 #register new voters
@@ -36,9 +36,7 @@ def index():
 # return results from server_decrypt
 @app.route('/results', methods=['POST','GET'])
 def results():
-    resultados = requests.post('http://server_decrypt:90/results').json() #request the results of the tally from the server. The server handles the counting of the data encrypted
-    app.logger.info(type(resultados))
-    
+    resultados = requests.post('http://server_decrypt:90/results').json() #request the results of the tally from the server. The server handles the counting of the data encrypted    
     return render_template('results.html', lista=resultados['output'])
 
 # reset too zero
