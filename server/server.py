@@ -71,6 +71,11 @@ def get_public_he():
     llave  = json.loads(key.text) # gets public key from the server_encrypt for h.e 
     return paillier.PaillierPublicKey(n=int(llave['public_key']['n'])) # create public key obj from the key sent by the server
 
+def warnings(message):
+    results = {"output":message}
+    confirmation = json.dumps(results)
+    app.logger.info(confirmation)
+    return confirmation
 
 '''
 Handles the process to add a vote to the tally
@@ -101,18 +106,17 @@ def process():
             encrypted_message = vote_encrypted[2] # encrypted message to be compared with the encripted message generated for the server
 
             if voters_info.count_documents({ "id": id_value }, limit = 1) != 0: # checks if the voter has been already register.
-                voter_key, has_voted = search_voter_registration(id_value)
-                if has_voted == True: # user has already cast a vote
-                    temp = {}
-                    temp['output'] = "Failure! Voter has alerady voted." # confirmation
-                    results = json.dumps(temp)
-                    return results
-                # deciphering message from client. Client used its private key and Server use the public key storage in its database
                 
+                voter_key, has_voted = search_voter_registration(id_value)
+
+                if has_voted == True: # user has already cast a vote
+                    return warnings("Failure! Voter has already voted.")
+
+                # deciphering message from client. Client used its private key and Server use the public key storage in its database
                 key = RSA.import_key(voter_key)
                 h = SHA256.new(mensaje.encode())
                 decoded = base64.b64decode(encrypted_message)
-                app.logger.info(decoded)
+                # app.logger.info(decoded)
 
                 try:
                     pkcs1_15.new(key).verify(h, decoded)
@@ -120,18 +124,13 @@ def process():
                     app.logger.info("The signature is valid.")
                 except (ValueError, TypeError):
                     app.logger.info("The signature is not valid.")
-                    good_key = False
-                    temp = {}
-                    temp['output'] = "Failure! Bad Key." # confirmation
-                    results = json.dumps(temp)
-                    return results
+                    return warnings("Failure! Bad Key.")
 
                 '''
                 Gets public key from the decrypt_server. It is used to encrypt ballots
                 '''
-
                 public_key_rec = get_public_he() #server_decrypt holds private and public key
-                
+
                 vote_received_enc = [paillier.EncryptedNumber(public_key_rec, int(x[0]), int(x[1])) for x in vote_encrypted[0]['values']] # convert the cipher values received front the 
                 tally_mongo_encrypted = [i for i in tally_votes.find()] # gets tally from database
 
@@ -146,13 +145,13 @@ def process():
                 temp = {}
                 temp['output'] = "Success!" # confirmation
 
-            else:
-                app.logger.info("Voter is not registered!")
-                good_key = False
-                temp = {}
-                temp['output'] = "Failure! Voter is not registered." # confirmation
-                results = json.dumps(temp)
-                return results
+            # else:
+            #     app.logger.info("Voter is not registered!")
+            #     # good_key = False
+            #     # temp = {}
+            #     # temp['output'] = "Failure! Voter is not registered." # confirmation
+            #     # results = json.dumps(temp)
+            #     return warnings("Failure! Voter is not registered.")
 
         except:
             temp = {}

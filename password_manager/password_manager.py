@@ -42,6 +42,10 @@ Database for private keys
 When the user register to vote, to public key goes to the electos database and the private key goes to the password manager database. These private key is encrypted using a hash generated from the password.
 '''
 
+'''
+return salts when the client ask. that salt is used to hash the master password
+'''
+
 @app.route("/salt", methods=['GET','POST'])
 def salt():
     if request.method == 'POST':
@@ -56,12 +60,15 @@ def salt():
 
         return json.dumps(results)
 
+'''
+After the salt is obtain, the master password is hashed using this salt and the hash is sent to download() in the password_manager for aunthetication. This hash (with 5000 rounnds) will be hashed one more round and compare with the hash stored inn the database for the id provided. Everythinng checks out, it sent the encrypted private key back to the cliene, otherwise, it returns 1 as a value to indicate error.
+'''
 
 @app.route("/download", methods=['GET','POST'])
 def download():
     if request.method == 'POST':
         id = json.loads(request.data)
-        app.logger.info(id)
+
         for i in password_manager.find({'id':id[0]}):# look up for the public key in the Authority database
             temp = i
         
@@ -71,7 +78,6 @@ def download():
         #if fails, returns 1
         if temp['hash'] != password_hash.hex():
             return json.dumps(1)
-
 
         return json.dumps(temp['priv_key'])
 
