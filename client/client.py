@@ -56,6 +56,13 @@ def sign_comm(message, decoded):
     return base64.b64encode(signature).decode('ascii')
     # app.logger.info(encoded)
 
+def warnings(message):
+    results = {"output":message}
+    confirmation = json.dumps(results)
+    app.logger.info(confirmation)
+    return confirmation
+
+
 
 @app.route("/", methods=['GET','POST'])
 def process():
@@ -95,46 +102,50 @@ def process():
             ballot  = encrypt(public_key_rec, vote_list)
             code = ballot['values']
             
-
-            # gets private key from password_manager: steps
-            # gets password and id_num
+            # get salt from the database
             id_value = data['id_num']
-            password_string = data['password']
-            # sends to pasword_manager and checks if the id is present, returns salt
-            # app.logger.info(id_value)
-            # package_password = 
-            temp = requests.post('http://password_manager:6000/salt',json = json.dumps([id_value, password_string]))#send data to the server to be added to the tally. Data is already encrypted encrypted.
-            key, salt = json.loads(temp.text)
-            # app.logger.info(key)
+            password = data['password']
 
-            # hash password with salt and 5001 rounds
-            password_string= str.encode(password_string)  
-            app.logger.info(password_string)
+            password_string= str.encode(password)  
+
+            temp = requests.post('http://password_manager:6000/salt',json = json.dumps([id_value]))#gets salt from the database to generate hash value
+            salt = json.loads(temp.text)
+            app.logger.info(salt)
+            if salt == 1:
+                results = {"output":"Voter no registered"}
+                confirmation = json.dumps(results)
+                app.logger.info(confirmation)
+                return confirmation
+
+
+
+            # aunthenticate connection by ending the hashed password with salt added
+            password_aunthticate = hashlib.pbkdf2_hmac('sha256', password_string, str.encode(salt), 5001)
+            app.logger.info(password_aunthticate)
+
+            private_key = requests.post('http://password_manager:6000/download',json = json.dumps([id_value, password_aunthticate.hex()])) #aunthenticate and download encrypted private key
+            if json.loads(private_key.text) == 1:
+                # results = {"output":"Aunthentication failed"}
+                # confirmation = json.dumps(results)
+                # app.logger.info(confirmation)
+                # return confirmation
+                return warnings("Aunthentication failed")
+
+
+
             password_hash = hashlib.pbkdf2_hmac('sha256', password_string, str.encode(salt), 5000)
-            app.logger.info(password_hash)
-            # password_key = hashlib.pbkdf2_hmac('sha256', str.encode(password_string), str.encode(salt), 5000)
-            # app.logger.info(password_key)
-            decoded = cryptocode.decrypt(key, password_hash.hex())
-            # # app.logger.info("aca")
-            # app.logger.info(decoded)
-            # decoded = cryptocode.decrypt(decoded, dk1.hex())
-            # post hash and id_num to password_manager
-            # checks there if that hash matches the one in the database, if true, return encrypted key
-            # hash password with salt from database with 5000 rounds
-            # use this hash to decrypt private key and use it.
+            decoded = cryptocode.decrypt(private_key, password_hash.hex())
+            app.logger.info(decoded)
+            if not decoded:
+                results = {"output":"Wrong password."}
+                confirmation = json.dumps(results)
+                app.logger.info(confirmation)
+                return confirmation
             
+
+
             message = str(code[0][0]) + str(code[1][0]) + str(code[2][0])
-            # key = RSA.import_key(open('private.pem').read()) # client read private key from file. It gets key from authority. 
-            # key = RSA.import_key(decoded) # client read private key from file. It gets key from authority. 
-            # h = SHA256.new(message.encode())
-            # signature = pkcs1_15.new(key).sign(h)
-            # encoded = base64.b64encode(signature).decode('ascii')
-            # # app.logger.info(encoded)
-            encoded = sign_comm(message, decoded)
-
-
-
-
+            encoded = sign_comm(message, decoded) #encode the message to be sent t
             '''
             "paquete" contains the encrypted ballor, the hash, the id and the encoded message
             '''

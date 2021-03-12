@@ -19,6 +19,8 @@ from Crypto.Signature import pkcs1_15
 from Crypto.Hash import SHA256
 import base64
 
+import hashlib
+
 #mongodb
 #register new voters
 import pymongo # modules
@@ -44,23 +46,34 @@ When the user register to vote, to public key goes to the electos database and t
 def salt():
     if request.method == 'POST':
         id = json.loads(request.data)
-        # app.logger.info(id)
+
+        
+        if password_manager.count_documents({ "id": id[0] }, limit = 1) != 0: # checks if the voter has been already register.
+            for i in password_manager.find({'id':id[0]}):# look up for the public key in the Authority database
+                temp = i
+            results = temp['salt']
+        else:
+            results = 1
+
+        return json.dumps(results)
+
+
+@app.route("/download", methods=['GET','POST'])
+def download():
+    if request.method == 'POST':
+        id = json.loads(request.data)
+        app.logger.info(id)
         for i in password_manager.find({'id':id[0]}):# look up for the public key in the Authority database
             temp = i
+        app.logger.info("aca")
 
-        return json.dumps([temp['priv_key'], temp['salt']])
+        if temp['hash'] != id[1]:
+            return json.dumps(1)
+        app.logger.info("bien")
 
 
-# @app.route("/", methods=['GET','POST'])
-# def database():
-#     if request.method == 'POST':
+        return json.dumps(temp['priv_key'])
 
-#         # first aunthicate
-#         # first, look up for the id and extract the salt, sends it back to the client
-#         # then the client hash the master password and add salt.
-#         # the client sents back the hash and the id. Compares the hash sent with the one in the database, if it matches, sends the encrypted private key, if not, returns 0
-
-#         return json.dumps(key)
 
 
 
