@@ -19,11 +19,11 @@ from Crypto.Signature import pkcs1_15
 from Crypto.Hash import SHA256
 import base64
 import hashlib
+import cryptocode
 
 #register new voters
 import pymongo # modules
 from pymongo import MongoClient
-import cryptocode
 
 
 app = FlaskAPI(__name__)
@@ -37,7 +37,7 @@ password_manager = db1.private_key # for voters priv key
 
 
 def encrypt(public, input):
-    app.logger.info("funcion")
+
     encrynumber_list = [public.encrypt(x) for x in input]
     enc_temp = {}
     enc_temp['public_key'] = {'g': public.g, 'n': public.n}
@@ -45,9 +45,9 @@ def encrypt(public, input):
     # return json.dumps(enc_temp)
     return enc_temp
 
-def get_key(url):
-    key = requests.post(url) #request a public key from the server_encrypt to encrypt the ballot
-    return json.loads(key.text) #loads public key from the server for encryptation.
+# def get_key(url):
+#     key = requests.post(url) #request a public key from the server_encrypt to encrypt the ballot
+#     return json.loads(key.text) #loads public key from the server for encryptation.
 
 def sign_comm(message, decoded):
     key = RSA.import_key(decoded) # client read private key from file. It gets key from authority. 
@@ -63,6 +63,14 @@ def warnings(message):
     return confirmation
 
 
+def get_public_key_he():
+    #get public key for h.e.
+    url_key = 'http://server_decrypt:90/key'
+    key = requests.post(url_key) #request a public key from the server_encrypt to encrypt the ballot
+
+    llave  = json.loads(key.text) # gets public key from the server_encrypt for h.e 
+    return paillier.PaillierPublicKey(n=int(llave['public_key']['n'])) # create public key obj from the key sent by the server
+
 
 @app.route("/", methods=['GET','POST'])
 def process():
@@ -75,74 +83,55 @@ def process():
         data = request.json
 
         if data:
-            
             #checks if no selection is made
             if int(data['input']) == -1:
-                results = {"output":"No selection"}
-                confirmation = json.dumps(results)
-                app.logger.info(confirmation)
-                return confirmation
+                return warnings("No selection")
+
             #checks if no id number was entered
             if data['id_num'] == "":
-                results = {"output":"Enter a valid Id"}
-                confirmation = json.dumps(results)
-                app.logger.info(confirmation)
-                return confirmation
+                return warnings("Enter a valid Id")
+
 
             #build ballot 
             vote_list = [0,0,0,0] # representation of a ballot. Each index represent a cadidate. We enforce one vote per ballot by using droplist in the frontend
             vote_list[int(data['input'])] = 1 # add 1 to the index number of the candidate choosen
 
-            #get public key for h.e.
-            url_key = 'http://server_decrypt:90/key'
-            llave  = get_key(url_key) # gets public key from the server_encrypt for h.e 
-            public_key_rec = paillier.PaillierPublicKey(n=int(llave['public_key']['n'])) # create public key obj from the key sent by the server
-
+            public_key_rec = get_public_key_he() #gets public key to encrypt the ballot for Homomorphic encryption
             #encrypt ballot
-            ballot  = encrypt(public_key_rec, vote_list)
+            ballot  = encrypt(public_key_rec, vote_list)#encrypt
             code = ballot['values']
-            
+            # app.logger.info(code) 
+
             # get salt from the database
             id_value = data['id_num']
             password = data['password']
 
             password_string= str.encode(password)  
 
-            temp = requests.post('http://password_manager:6000/salt',json = json.dumps([id_value]))#gets salt from the database to generate hash value
-            salt = json.loads(temp.text)
-            app.logger.info(salt)
+            temp_salt = requests.post('http://password_manager:6000/salt',json = json.dumps([id_value]))#gets salt from the database to generate hash value
+            salt = json.loads(temp_salt.text)
+            # app.logger.info(salt)
+
             if salt == 1:
-                results = {"output":"Voter no registered"}
-                confirmation = json.dumps(results)
-                app.logger.info(confirmation)
-                return confirmation
-
-
+                return warnings("Voter no registered")
 
             # aunthenticate connection by ending the hashed password with salt added
-            password_aunthticate = hashlib.pbkdf2_hmac('sha256', password_string, str.encode(salt), 5001)
-            app.logger.info(password_aunthticate)
+            password_aunthticate = hashlib.pbkdf2_hmac('sha256', password_string, str.encode(salt), 5000)
+            # app.logger.info(password_aunthticate)
 
-            private_key = requests.post('http://password_manager:6000/download',json = json.dumps([id_value, password_aunthticate.hex()])) #aunthenticate and download encrypted private key
-            if json.loads(private_key.text) == 1:
-                # results = {"output":"Aunthentication failed"}
-                # confirmation = json.dumps(results)
-                # app.logger.info(confirmation)
-                # return confirmation
+            temp_private_key = requests.post('http://password_manager:6000/download',json = json.dumps([id_value, password_aunthticate.hex()])) #aunthenticate and download encrypted private key
+            private_key = json.loads(temp_private_key.text)
+
+            if private_key == 1:
                 return warnings("Aunthentication failed")
 
-
-
             password_hash = hashlib.pbkdf2_hmac('sha256', password_string, str.encode(salt), 5000)
-            decoded = cryptocode.decrypt(private_key, password_hash.hex())
-            app.logger.info(decoded)
-            if not decoded:
-                results = {"output":"Wrong password."}
-                confirmation = json.dumps(results)
-                app.logger.info(confirmation)
-                return confirmation
-            
 
+            decoded = cryptocode.decrypt(private_key, password_hash.hex())
+            # app.logger.info(decoded)
+
+            if not decoded:
+                return warnings("Wrong password.")
 
             message = str(code[0][0]) + str(code[1][0]) + str(code[2][0])
             encoded = sign_comm(message, decoded) #encode the message to be sent t

@@ -63,6 +63,14 @@ def get_key(url):
     key = requests.post(url) #request a public key from the server_encrypt to encrypt the ballot
     return json.loads(key.text) #loads public key from the server for encryptation.
                 
+def get_public_he():
+    #get public key for h.e.
+    url_key = 'http://server_decrypt:90/key'
+    key = requests.post(url_key) #request a public key from the server_encrypt to encrypt the ballot
+
+    llave  = json.loads(key.text) # gets public key from the server_encrypt for h.e 
+    return paillier.PaillierPublicKey(n=int(llave['public_key']['n'])) # create public key obj from the key sent by the server
+
 
 '''
 Handles the process to add a vote to the tally
@@ -80,11 +88,8 @@ def process():
     '''
 
     if request.method == 'POST':
-
         vote_encrypted = json.loads(request.data) # gets encrypted ballot, id and secret mesage.
-            
         try: # in case of failure, returns an output with the message "Failure", otherwise, "Success
-
             id_value = vote_encrypted[1] # id of the voter
             package = vote_encrypted[0]['values'] # encrypted values ciphertext to be used to check if the  message comes from the owner of the private key.
             
@@ -124,20 +129,17 @@ def process():
                 '''
                 Gets public key from the decrypt_server. It is used to encrypt ballots
                 '''
-                url_key = 'http://server_decrypt:90/key'
-                llave = get_key(url_key) #gets public key from server_decrypt to perform H.E.
 
-                public_key_rec = paillier.PaillierPublicKey(n=int(llave['public_key']['n']))#create public key obj from the key sent by the server
-
+                public_key_rec = get_public_he() #server_decrypt holds private and public key
+                
                 vote_received_enc = [paillier.EncryptedNumber(public_key_rec, int(x[0]), int(x[1])) for x in vote_encrypted[0]['values']] # convert the cipher values received front the 
-
                 tally_mongo_encrypted = [i for i in tally_votes.find()] # gets tally from database
 
                 encriptado_temp = [paillier.EncryptedNumber(public_key_rec, int(j)) for j in tally_mongo_encrypted[len(tally_mongo_encrypted)-1]["votes"]] # gets the current tally values that are record in the db. Convert those values in EncryptedNumber objects. (Current values is last )
 
                 add_vote(encriptado_temp, vote_received_enc) # add the ballot to the tally
                 cipher_values = [str(i.ciphertext()) for i in encriptado_temp] # creates list with the ciphertext to be stored in mongodb
-
+                
                 tally_votes.insert_one({"timestamp":datetime.timestamp(datetime.now()), "votes":cipher_values}) # insert value to
 
                 voters_info.update_one({'id':id_value}, {"$set":{"has_votes":True}})

@@ -63,6 +63,20 @@ def panel():
 
 from werkzeug.security import generate_password_hash, check_password_hash
 # register voter (acts like the voter register center, needs name bday id and provides a hash number plus creates a public and private key)
+
+
+def generate_keys():
+    keyPair = RSA.generate(3072)
+    # keys. In normal situation, these keys would be generated for the system and use for register a new voter. For testing, we are using hardcode keys in private.pem and receiver.pm 
+    pubKey = keyPair.publickey()
+    pubKeyPEM = pubKey.exportKey()
+    a = pubKeyPEM.decode('ascii')
+    privKeyPEM = keyPair.exportKey()
+    b = privKeyPEM.decode('ascii')
+    # pub = RSA.import_key(a)
+    # priv = RSA.import_key(b)
+    return RSA.import_key(a), RSA.import_key(b)
+
 @app.route("/register", methods=["POST","GET"])
 def register_voter():
     if request.method == "POST":
@@ -73,19 +87,8 @@ def register_voter():
             id_num =  request.form.get("id") 
             password =  request.form.get("Password") 
 
-            keyPair = RSA.generate(3072)
-            # keys. In normal situation, these keys would be generated for the system and use for register a new voter. For testing, we are using hardcode keys in private.pem and receiver.pm 
-            pubKey = keyPair.publickey()
-            pubKeyPEM = pubKey.exportKey()
-            a = pubKeyPEM.decode('ascii')
-            privKeyPEM = keyPair.exportKey()
-            b = privKeyPEM.decode('ascii')
-            pub = RSA.import_key(a)
-            priv = RSA.import_key(b)
-            # generate salt
-            # generate hash aunthentication with the password and salt with 5001 rounds
-            # encrypt private key using the hash oof the password with 5000 rounds 
-            # add id, hash auntheticate, salt, privatekey encrypted to the password_manager database
+
+            pub, priv = generate_keys()
 
             hash_code = fname+lname+date
             hash_result = hashlib.sha256(hash_code.encode()) # generate a hash number from the name and id number.
@@ -98,9 +101,9 @@ def register_voter():
                 #insert to private key (password manager) database
                 salt = "hola"
                 password_string= str.encode(password)  
-                password_hash = hashlib.pbkdf2_hmac('sha256', password_string, salt.encode(), 5001)
                 password_key = hashlib.pbkdf2_hmac('sha256', password_string, salt.encode(), 5000)
-
+                password_hash = hashlib.pbkdf2_hmac('sha256', str.encode(password_key.hex()), salt.encode(), 1)
+                app.logger.info(password_hash.hex())
                 # #encrypt and send for storage
                 priv_encoded = cryptocode.encrypt(priv.exportKey().decode('ascii'), password_key.hex())
                

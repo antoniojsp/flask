@@ -47,7 +47,6 @@ def salt():
     if request.method == 'POST':
         id = json.loads(request.data)
 
-        
         if password_manager.count_documents({ "id": id[0] }, limit = 1) != 0: # checks if the voter has been already register.
             for i in password_manager.find({'id':id[0]}):# look up for the public key in the Authority database
                 temp = i
@@ -65,11 +64,13 @@ def download():
         app.logger.info(id)
         for i in password_manager.find({'id':id[0]}):# look up for the public key in the Authority database
             temp = i
-        app.logger.info("aca")
+        
+        #aunthenticate: if not equal, returns 1, otherwise, encrypted priv_key
+        password_hash = hashlib.pbkdf2_hmac('sha256', str.encode(id[1]), i['salt'].encode(), 1)
 
-        if temp['hash'] != id[1]:
+        #if fails, returns 1
+        if temp['hash'] != password_hash.hex():
             return json.dumps(1)
-        app.logger.info("bien")
 
 
         return json.dumps(temp['priv_key'])
