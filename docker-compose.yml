@@ -19,7 +19,6 @@ services:
     depends_on:
       - server
 
-
   server:
     build:
       context: ./server
@@ -36,5 +35,10 @@ services:
     ports:
       - 90:90
 
-
+  password_manager:
+    build:
+      context: ./password_manager
+    image: pypassword_manager:v1
+    ports:
+      - 6000:6000
 

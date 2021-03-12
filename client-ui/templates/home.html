@@ -34,6 +34,7 @@ function getRadioVal(form, name) {
                 obj.input = getRadioVal( document.getElementById('candidates'), 'candidate' );
                 // obj.hash = document.getElementById('hash').value;
                 obj.id_num = document.getElementById('id_num').value;
+                obj.password = document.getElementById('Password').value;
                 obj.dns = "http://server"; //Change the dns if you change the naem of service inside docker-compose file.
 
           var input_json = JSON.stringify(obj);
@@ -98,7 +99,10 @@ function getRadioVal(form, name) {
                 <label for="id_num">Id number: </label>
                 <input type="number" id="id_num" name="id_num" maxlength="8" required> 
             </div>
-
+            <div>    
+                <label for="Password">Password: </label>
+                <input type="text" id="Password" name="Password" maxlength="50" required> 
+            </div>
             <!-- <div>    
                 <label for="hash">Hash: </label>
                 <input type="text" id="hash" name="hash" maxlength="50" required> 

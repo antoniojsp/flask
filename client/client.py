@@ -18,13 +18,24 @@ import binascii
 from Crypto.Signature import pkcs1_15
 from Crypto.Hash import SHA256
 import base64
+import hashlib
+
+#register new voters
+import pymongo # modules
+from pymongo import MongoClient
+import cryptocode
+
 
 app = FlaskAPI(__name__)
 cors = CORS(app, resources={r'/*': {"origins": '*'}})
 
-'''
-Client encrypts the ballot
-'''
+client = MongoClient("mongodb+srv://antonio:antonio@cluster0.hb8y0.mongodb.net/experiment?retryWrites=true&w=majority", ssl=True,ssl_cert_reqs='CERT_NONE')
+db = client.register  # create database
+collection = db.voter # collection of voters
+db1 = client.private  # create database
+password_manager = db1.private_key # for voters priv key
+
+
 def encrypt(public, input):
     app.logger.info("funcion")
     encrynumber_list = [public.encrypt(x) for x in input]
@@ -38,6 +49,13 @@ def get_key(url):
     key = requests.post(url) #request a public key from the server_encrypt to encrypt the ballot
     return json.loads(key.text) #loads public key from the server for encryptation.
 
+def sign_comm(message, decoded):
+    key = RSA.import_key(decoded) # client read private key from file. It gets key from authority. 
+    h = SHA256.new(message.encode())
+    signature = pkcs1_15.new(key).sign(h)
+    return base64.b64encode(signature).decode('ascii')
+    # app.logger.info(encoded)
+
 
 @app.route("/", methods=['GET','POST'])
 def process():
@@ -50,8 +68,6 @@ def process():
         data = request.json
 
         if data:
-
-            vote_list = [0,0,0,0] # representation of a ballot. Each index represent a cadidate. We enforce one vote per ballot by using droplist in the frontend
             
             #checks if no selection is made
             if int(data['input']) == -1:
@@ -66,31 +82,63 @@ def process():
                 app.logger.info(confirmation)
                 return confirmation
 
+            #build ballot 
+            vote_list = [0,0,0,0] # representation of a ballot. Each index represent a cadidate. We enforce one vote per ballot by using droplist in the frontend
             vote_list[int(data['input'])] = 1 # add 1 to the index number of the candidate choosen
 
+            #get public key for h.e.
             url_key = 'http://server_decrypt:90/key'
-            llave  = get_key(url_key) # gets public key from the server_encrypt for encryptation 
-
+            llave  = get_key(url_key) # gets public key from the server_encrypt for h.e 
             public_key_rec = paillier.PaillierPublicKey(n=int(llave['public_key']['n'])) # create public key obj from the key sent by the server
 
+            #encrypt ballot
             ballot  = encrypt(public_key_rec, vote_list)
             code = ballot['values']
             
-            '''
-            TEMP:
-            Sign communications
-            '''
-            message = str(code[0][0]) + str(code[1][0]) + str(code[2][0])
-            key = RSA.import_key(open('private.pem').read()) # client read private key from file. It gets key from authority. 
-            h = SHA256.new(message.encode())
-            signature = pkcs1_15.new(key).sign(h)
-            encoded = base64.b64encode(signature).decode('ascii')
+
+            # gets private key from password_manager: steps
+            # gets password and id_num
+            id_value = data['id_num']
+            password_string = data['password']
+            # sends to pasword_manager and checks if the id is present, returns salt
+            # app.logger.info(id_value)
+            # package_password = 
+            temp = requests.post('http://password_manager:6000/salt',json = json.dumps([id_value, password_string]))#send data to the server to be added to the tally. Data is already encrypted encrypted.
+            key, salt = json.loads(temp.text)
+            # app.logger.info(key)
+
+            # hash password with salt and 5001 rounds
+            password_string= str.encode(password_string)  
+            app.logger.info(password_string)
+            password_hash = hashlib.pbkdf2_hmac('sha256', password_string, str.encode(salt), 5000)
+            app.logger.info(password_hash)
+            # password_key = hashlib.pbkdf2_hmac('sha256', str.encode(password_string), str.encode(salt), 5000)
+            # app.logger.info(password_key)
+            decoded = cryptocode.decrypt(key, password_hash.hex())
+            # # app.logger.info("aca")
+            # app.logger.info(decoded)
+            # decoded = cryptocode.decrypt(decoded, dk1.hex())
+            # post hash and id_num to password_manager
+            # checks there if that hash matches the one in the database, if true, return encrypted key
+            # hash password with salt from database with 5000 rounds
+            # use this hash to decrypt private key and use it.
             
+            message = str(code[0][0]) + str(code[1][0]) + str(code[2][0])
+            # key = RSA.import_key(open('private.pem').read()) # client read private key from file. It gets key from authority. 
+            # key = RSA.import_key(decoded) # client read private key from file. It gets key from authority. 
+            # h = SHA256.new(message.encode())
+            # signature = pkcs1_15.new(key).sign(h)
+            # encoded = base64.b64encode(signature).decode('ascii')
+            # # app.logger.info(encoded)
+            encoded = sign_comm(message, decoded)
+
+
+
+
             '''
             "paquete" contains the encrypted ballor, the hash, the id and the encoded message
             '''
             paquete = [ballot, data['id_num'], encoded]
-            
             temp = requests.post('http://server',json = json.dumps(paquete))#send data to the server to be added to the tally. Data is already encrypted encrypted.
             results = json.loads(temp.text) #gets sucess or fail, depents on the results of the vote counting 
 

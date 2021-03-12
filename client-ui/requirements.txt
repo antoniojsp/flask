@@ -6,3 +6,4 @@ pyopenssl
 pymongo
 dnspython
 pycryptodome
+cryptocode

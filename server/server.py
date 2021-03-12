@@ -107,7 +107,7 @@ def process():
                 key = RSA.import_key(voter_key)
                 h = SHA256.new(mensaje.encode())
                 decoded = base64.b64decode(encrypted_message)
-
+                app.logger.info(decoded)
 
                 try:
                     pkcs1_15.new(key).verify(h, decoded)
