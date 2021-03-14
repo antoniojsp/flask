@@ -91,7 +91,6 @@ def process():
             if data['id_num'] == "":
                 return warnings("Enter a valid Id")
 
-
             #build ballot 
             vote_list = [0,0,0,0] # representation of a ballot. Each index represent a cadidate. We enforce one vote per ballot by using droplist in the frontend
             vote_list[int(data['input'])] = 1 # add 1 to the index number of the candidate choosen
@@ -116,7 +115,7 @@ def process():
                 return warnings("Voter no registered")
 
             # aunthenticate connection by ending the hashed password with salt added
-            password_aunthticate = hashlib.pbkdf2_hmac('sha256', password_string, str.encode(salt), 5000)
+            password_aunthticate = hashlib.pbkdf2_hmac('sha256', password_string, str.encode(salt), 5001)
             # app.logger.info(password_aunthticate)
 
             temp_private_key = requests.post('http://password_manager:6000/download',json = json.dumps([id_value, password_aunthticate.hex()])) #aunthenticate and download encrypted private key

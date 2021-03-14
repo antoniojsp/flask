@@ -97,7 +97,9 @@ def generate_hashes(password, salt):
     #insert to private key (password manager) database
     password_string= str.encode(password)  
     a = hashlib.pbkdf2_hmac('sha256', password_string, salt.encode(), 5000) # for encrypt
-    b = hashlib.pbkdf2_hmac('sha256', str.encode(a.hex()), salt.encode(), 1) # for aunthenticate
+    # b = hashlib.pbkdf2_hmac('sha256', str.encode(a.hex()), salt.encode(), 1) # for aunthenticate
+    b = hashlib.pbkdf2_hmac('sha256', password_string, salt.encode(), 5001) # for aunthenticate
+
 
     return a, b
 
@@ -114,7 +116,6 @@ def register_voter():
             #generate keys to be stored
             pub, priv = generate_keys()
 
-            
             if collection.count_documents({ "id": id_num }, limit = 1) == 0: # checks if the voter has been already register.
 
                 # insert to electors database

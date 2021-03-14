@@ -142,6 +142,7 @@ def process():
                 tally_votes.insert_one({"timestamp":datetime.timestamp(datetime.now()), "votes":cipher_values}) # insert value to
 
                 voters_info.update_one({'id':id_value}, {"$set":{"has_votes":True}})
+                
                 temp = {}
                 temp['output'] = "Success!" # confirmation
 

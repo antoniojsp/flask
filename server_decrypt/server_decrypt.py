@@ -60,6 +60,7 @@ def results():
 
         return json.dumps(temp)
 
+# reset tally to zero for a new election
 @app.route("/new", methods=['POST'])
 def new():#restart tallies to zero
 

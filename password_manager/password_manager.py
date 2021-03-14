@@ -31,6 +31,7 @@ cors = CORS(app, resources={r'/*': {"origins": '*'}})
 
 #mongodb
 client = MongoClient("mongodb+srv://antonio:antonio@cluster0.hb8y0.mongodb.net/experiment?retryWrites=true&w=majority", ssl=True,ssl_cert_reqs='CERT_NONE')
+
 # db = client.register  # create database
 # collection = db.voter # collection of voters
 
@@ -73,10 +74,10 @@ def download():
             temp = i
         
         #aunthenticate: if not equal, returns 1, otherwise, encrypted priv_key
-        password_hash = hashlib.pbkdf2_hmac('sha256', str.encode(id[1]), i['salt'].encode(), 1)
+        # password_hash = hashlib.pbkdf2_hmac('sha256', str.encode(id[1]), i['salt'].encode(), 1)
 
         #if fails, returns 1
-        if temp['hash'] != password_hash.hex():
+        if temp['hash'] != id[1]:
             return json.dumps(1)
 
         return json.dumps(temp['priv_key'])
