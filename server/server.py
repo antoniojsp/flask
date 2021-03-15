@@ -122,19 +122,15 @@ def process():
             '''
             encrypted_message is a message signed with the private key of the client and verify with the public key that the server has. The server look up for the public key in the database using the id of the voter. Mensaje is extracted from the "package" and after the encrypted message is decrypted, it is compare with "mensaje" and checks if they are equal.
             '''
-            # value_hash = hash_integrity(package)
-
-            value_hash = str(package[0][0]) + str(package[1][0]) + str(package[2][0])
-
 
             if voters_info.count_documents({ "id": id_value }, limit = 1) != 0: # checks if the voter has been already register. NOTE: it's safe to assume that if a ballot reach this point, the voter existes since the client perform a pre-screening
 
                 voter_public_key, has_voted = search_voter_registration(id_value) #gets from the voter database the public key and
+                value_hash = hash_integrity(package)
 
                 
                 if has_voted == True: # user has already cast a vote
                     return warnings("Failure! Voter has already voted.")
-
                 try:
                     check_signature_integrity(voter_public_key, value_hash, encrypted_hash)
                 except:
@@ -170,10 +166,7 @@ def process():
                 '''
                 Update the information of the elector's database. Delete the public key to avoid make extra sure no votes cannot be  performer
                 '''
-                voters_info.update_one({'id':id_value}, {"$set":{"has_votes":True}})
-
-                # voters_info.update_one({'id':id_value}, {"$set":{"pk":"None"}})
-
+                voters_info.update_one({'id':id_value}, {"$set":{"has_votes":True, "pk":""}})
 
                 temp = {}
                 temp['output'] = "Success!" # confirmation

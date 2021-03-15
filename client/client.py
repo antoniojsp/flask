@@ -71,8 +71,8 @@ def hash_integrity(packet):
     for i in packet:
         value+= int(i[0])
     
-    # return hashlib.pbkdf2_hmac('sha256', str.encode(str(value)), str.encode("salt"), 5000).hex()
-    return str(value)
+    return hashlib.pbkdf2_hmac('sha256', str.encode(str(value)), str.encode("salt"), 5000).hex()
+    # return str(value)
 
 
 @app.route("/", methods=['GET','POST'])
@@ -123,9 +123,6 @@ def process():
             if salt == 1: # if "salt" returns 1, then there is no associeted account with the voter
                 return warnings("Voter no registered")
 
-
-
-
             # aunthenticate connection by hashing password with salt added
             password_aunthticate = hashlib.pbkdf2_hmac('sha256', password_string, str.encode(salt), 5001)
 
@@ -137,20 +134,18 @@ def process():
                 return warnings("Aunthentication failed")
 
             password_hash = hashlib.pbkdf2_hmac('sha256', password_string, str.encode(salt), 5000)
-            decoded = cryptocode.decrypt(private_key, password_hash.hex()) #encrypts the private key using  "password_hash"
 
-
+            decrypt_key = cryptocode.decrypt(private_key, password_hash.hex()) #encrypts the private key using  "password_hash"
 
             packet_values = ballot['values'] # extract raw encrypter ciphertext to sign up the code
-            message = str(packet_values[0][0]) + str(packet_values[1][0]) + str(packet_values[2][0])
-            # message = hash_integrity(packet_values)
-            encoded = sign_comm(message, decoded)
+            message = hash_integrity(packet_values)# created hash with the encrypted values of the ballot.
+            encoded = sign_comm(message, decrypt_key)  #sign the message to perform integrity verificatin
 
             '''
             "Paquete" contains the encrypted  ballot, the voter's id and the signature to check integrity
             This is the step where it's sent to the server
             '''
-            paquete = [ballot, data['id_num'], encoded]
+            paquete = [ballot, data['id_num'], encoded] #forms list with the parts to be sent.
             temp = requests.post('http://server',json = json.dumps(paquete))#send data to the server to be added to the tally. Data is already encrypted encrypted.
 
             '''
