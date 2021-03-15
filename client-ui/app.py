@@ -23,9 +23,6 @@ import binascii
 from werkzeug.security import generate_password_hash, check_password_hash
 import crypt  # generates salt
 
-
-
-
 #flask instance
 app = Flask(__name__)
 
@@ -37,10 +34,10 @@ import hashlib
 
 #mongodb
 client = MongoClient("mongodb+srv://antonio:antonio@cluster0.hb8y0.mongodb.net/experiment?retryWrites=true&w=majority", ssl=True,ssl_cert_reqs='CERT_NONE')
-db = client.register  # create database
+db = client.register  # acess/create database to register voters and public key
 collection = db.voter # collection of voters
 
-db1 = client.private  # create database
+db1 = client.private  # acccess database for password manager
 password_manager = db1.private_key # for voters priv key
 
 # index. Where the vote is casted.
@@ -66,9 +63,6 @@ def new():
 def panel():
     #delete the tally from mongodb and fill up a new one with all the stats in zero (encrypted)
     return render_template("control_panel.html")
-
-
-
 
 '''
 Voter registration:
@@ -99,8 +93,6 @@ def generate_hashes(password, salt):
     a = hashlib.pbkdf2_hmac('sha256', password_string, salt.encode(), 5000) # for encrypt
     # b = hashlib.pbkdf2_hmac('sha256', str.encode(a.hex()), salt.encode(), 1) # for aunthenticate
     b = hashlib.pbkdf2_hmac('sha256', password_string, salt.encode(), 5001) # for aunthenticate
-
-
     return a, b
 
 @app.route("/register", methods=["POST","GET"])

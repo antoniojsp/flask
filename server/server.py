@@ -22,6 +22,9 @@ from Crypto.Cipher import PKCS1_OAEP
 from Crypto.Signature import pkcs1_15
 from Crypto.Hash import SHA256
 
+import hashlib
+
+
 '''
 server.py connects with client.py and gets the encrypted ballot and perform the addition of the vote into the tally. It gets the public key from server_decrypt.py and does not handle the private key since we don't want to have the chance of having both keys in the same location in this server since there is sensitive data.
 '''
@@ -77,6 +80,12 @@ def warnings(message):
     app.logger.info(confirmation)
     return confirmation
 
+def hash_integrity(packet):
+    value = 0
+    for i in packet:
+        value+= int(i[0])
+    return hashlib.pbkdf2_hmac('sha256', str.encode(str(value)), str.encode("salt"), 5000)
+
 '''
 Handles the process to add a vote to the tally
 
@@ -99,11 +108,11 @@ def process():
             package = vote_encrypted[0]['values'] # encrypted values ciphertext to be used to check if the  message comes from the owner of the private key.
             
             '''
-            encrypted_message is a message encrypted with the private key of the client and decrypt with the public key that the server has. The server look up for the public key in the database using the id of the voter. Mensaje is extracted from the "package" and after the encrypted message is decrypted, it is compare with "mensaje" and checks if they are equal.
+            encrypted_message is a message signed with the private key of the client and verify with the public key that the server has. The server look up for the public key in the database using the id of the voter. Mensaje is extracted from the "package" and after the encrypted message is decrypted, it is compare with "mensaje" and checks if they are equal.
             '''
-
-            mensaje = str(package[0][0]) + str(package[1][0]) + str(package[2][0]) # message used to compare with the secret message from the client. Equal messages auntheticate the client
             encrypted_message = vote_encrypted[2] # encrypted message to be compared with the encripted message generated for the server
+
+            value_hash = hash_integrity(package)
 
             if voters_info.count_documents({ "id": id_value }, limit = 1) != 0: # checks if the voter has been already register.
                 
@@ -114,7 +123,7 @@ def process():
 
                 # deciphering message from client. Client used its private key and Server use the public key storage in its database
                 key = RSA.import_key(voter_key)
-                h = SHA256.new(mensaje.encode())
+                h = SHA256.new(value_hash.hex().encode())
                 decoded = base64.b64decode(encrypted_message)
                 # app.logger.info(decoded)
 
@@ -124,7 +133,7 @@ def process():
                     app.logger.info("The signature is valid.")
                 except (ValueError, TypeError):
                     app.logger.info("The signature is not valid.")
-                    return warnings("Failure! Bad Key.")
+                    return warnings("Error. (possible vote tampering)")
 
                 '''
                 Gets public key from the decrypt_server. It is used to encrypt ballots
@@ -142,7 +151,7 @@ def process():
                 tally_votes.insert_one({"timestamp":datetime.timestamp(datetime.now()), "votes":cipher_values}) # insert value to
 
                 voters_info.update_one({'id':id_value}, {"$set":{"has_votes":True}})
-                
+
                 temp = {}
                 temp['output'] = "Success!" # confirmation
 
