@@ -48,9 +48,11 @@ function getRadioVal(form, name) {
                       data: input_json,
                       dataType: 'json',
                       success: function(data) {
-                    console.log(data)
-                      $("#output_chl_level").html(data.output);
-                    //   location.reload();
+                         // console.log(data)
+                        $("#message").html(data.output);
+                        if (data.output == "Success!"){
+                        setTimeout(function(){location.reload(true);},3000);
+                        };
 
                       }
 
@@ -80,7 +82,7 @@ function getRadioVal(form, name) {
 
         <label for="votes">Choose a candidate:</label>
 
-        <form id="candidates">
+        <form id="candidates" autocomplete="off">
 
             <input type="radio" id="candidate" name="candidate" value="0"
              >
@@ -101,18 +103,14 @@ function getRadioVal(form, name) {
             </div>
             <div>    
                 <label for="Password">Password: </label>
-                <input type="text" id="Password" name="Password" maxlength="50" required> 
+                <input type="password" id="Password" name="Password" maxlength="50" required> 
             </div>
-            <!-- <div>    
-                <label for="hash">Hash: </label>
-                <input type="text" id="hash" name="hash" maxlength="50" required> 
-            </div> -->
 
          </form>
 
             <p><a class="btn btn-lg btn-success" role="button" id="btnSubmit">Vote</a></p>
 
-            <p class="lead" id="output_chl_level"></p>
+            <p class="lead" id="message"></p>
 
         </form>
 

@@ -46,23 +46,17 @@ def encrypt(public, input):
     # return json.dumps(enc_temp)
     return enc_temp
 
-# def get_key(url):
-#     key = requests.post(url) #request a public key from the server_encrypt to encrypt the ballot
-#     return json.loads(key.text) #loads public key from the server for encryptation.
-
 def sign_comm(message, decoded): #checks integrity oof ballots
     key = RSA.import_key(decoded) # client read private key from file. It gets key from authority. 
     h = SHA256.new(message.encode())
     signature = pkcs1_15.new(key).sign(h)
     return base64.b64encode(signature).decode('ascii')
-    # app.logger.info(encoded)
 
 def warnings(message): # massages
     results = {"output":message}
     confirmation = json.dumps(results)
     app.logger.info(confirmation)
     return confirmation
-
 
 def get_public_key_he():
     #get public key for h.e.
@@ -76,15 +70,15 @@ def hash_integrity(packet):
     value = 0
     for i in packet:
         value+= int(i[0])
-    return hashlib.pbkdf2_hmac('sha256', str.encode(str(value)), str.encode("salt"), 5000)
-
+    
+    # return hashlib.pbkdf2_hmac('sha256', str.encode(str(value)), str.encode("salt"), 5000).hex()
+    return str(value)
 
 
 @app.route("/", methods=['GET','POST'])
 def process():
     '''
-    Client request to communicate with the unique hash (hash has name, last name and dateb) with a number id
-    Server Checks if the hash value is in the server correspondent to that id. (checks if exists and it has voted yet) gets the public key correspondennt to that hash value and id, and encrypt its public Homomorphic Encription key with it (with a message). Sends to the client. Client deciphers and ciphers the ballot and deciphers the random message. Sends to server. If the two messages are the same them proced to perform operations in the encrypted dsta
+    Client extract information from website. It will validate the input. It  checks the password by checking with the password manager (using hashes). The password manager will return encrypted private key for RSA signing. It will perform homomorphic encryption with the public key from "decrypt_server", sign the ballot with the RSA private key and sent it to the server. The whole part would be encrypted and the server that performs the  addition of the ballot to the tally  cannot see the voter's candidate election.
     '''
     if (request.method == 'POST'):
 
@@ -129,6 +123,9 @@ def process():
             if salt == 1: # if "salt" returns 1, then there is no associeted account with the voter
                 return warnings("Voter no registered")
 
+
+
+
             # aunthenticate connection by hashing password with salt added
             password_aunthticate = hashlib.pbkdf2_hmac('sha256', password_string, str.encode(salt), 5001)
 
@@ -142,16 +139,18 @@ def process():
             password_hash = hashlib.pbkdf2_hmac('sha256', password_string, str.encode(salt), 5000)
             decoded = cryptocode.decrypt(private_key, password_hash.hex()) #encrypts the private key using  "password_hash"
 
+
+
             packet_values = ballot['values'] # extract raw encrypter ciphertext to sign up the code
-            message = hash_integrity(packet_values) # obtain the hash value of the addition of the values from the list of the ballot. Then, hashes it. The servers does the same. They need to be equal to proof information is the same and there was no tampering.
-            signature = sign_comm(message.hex(), decoded) #encode the message to be sent. 
-  
+            message = str(packet_values[0][0]) + str(packet_values[1][0]) + str(packet_values[2][0])
+            # message = hash_integrity(packet_values)
+            encoded = sign_comm(message, decoded)
 
             '''
             "Paquete" contains the encrypted  ballot, the voter's id and the signature to check integrity
             This is the step where it's sent to the server
             '''
-            paquete = [ballot, data['id_num'], signature]
+            paquete = [ballot, data['id_num'], encoded]
             temp = requests.post('http://server',json = json.dumps(paquete))#send data to the server to be added to the tally. Data is already encrypted encrypted.
 
             '''
