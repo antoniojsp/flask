@@ -5,6 +5,9 @@
     <title>Election App - Homomorphic Encryption</title>
     <!-- Change the localhost:5000 to a different host:port if you run client on a different host:port. 
      This sample suppose to run on dev box so localhost and default port 5000 makes sense. -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
+
     <link   href="http://localhost:5000/css/bootstrap.min.css" rel="stylesheet">
     <link   href="http://localhost:5000/css/jumbotron-narrow.css" rel="stylesheet">
 
@@ -64,6 +67,26 @@ function getRadioVal(form, name) {
 
 </head>
 <body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="#">Important Links:</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+      
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav mr-auto">
+            <li class="nav-item active">
+              <a class="nav-link" href="http://localhost:7000/register">1: Register to Vote<span class="sr-only"></span></a>
+            </li>
+            <li class="nav-item active">
+                <a class="nav-link" href="http://localhost:7000/">2: Vote Here <span class="sr-only"></span></a>
+              </li>
+              <li class="nav-item active">
+                <a class="nav-link" href="http://localhost:7000/audit">3: Audit your Vote<span class="sr-only"></span></a>
+              </li>
+          </ul>
+        </div>
+      </nav>
     <div class="container">
         <div class="header">
             <nav>
