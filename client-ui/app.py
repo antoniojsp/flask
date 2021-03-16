@@ -59,7 +59,17 @@ def panel():
     #delete the tally from mongodb and fill up a new one with all the stats in zero (encrypted)
     return render_template("control_panel.html")
 
-
+@app.route("/audit", methods=["POST","GET"])
+def audit():
+    #delete the tally from mongodb and fill up a new one with all the stats in zero (encrypted)
+    if request.method == "POST":
+        hash_val = request.form.get("hash")
+        # app.logger.info(hash_val)
+        result = requests.post('http://server_decrypt:90/audit',json = json.dumps(hash_val)).text
+        # app.logger.info(result)
+        flash(result)
+        app.logger.info(result)
+    return render_template("audit.html")
 
 
 
@@ -119,10 +129,10 @@ def register_voter():
                 priv_encoded = cryptocode.encrypt(priv.exportKey().decode('ascii'), hash_encrypt.hex()) # encrypt private key with hash_enncrypt
 
                 # adding to electors's database the id number, the hash for check if voted was countes, boolean if the person votes, public key (plain text, to verify signature from the cl
-                collection.insert_one({ "id":id_num, "hash":hash_result.hexdigest(), "has_voted":False, "pk": pub.exportKey().decode('ascii')})
+                collection.insert_one({ "id":id_num,  "has_voted":False, "pk": pub.exportKey().decode('ascii')})
                 # adding to password manager the id number, the hash aunthentication, salt and the encrypted private key
                 password_manager.insert_one({"id":id_num, "hash":hash_authenticate.hex(), "salt":salt, "priv_key":priv_encoded})
-                flash("The voter with id #"+id_num+" has been registered. Hash value: "+ hash_result.hexdigest())
+                flash("The voter with id #"+id_num+" has been registered.")
 
             else:
                 # in case the voter is already registered.

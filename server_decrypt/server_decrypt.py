@@ -1,3 +1,4 @@
+from werkzeug.utils import validate_arguments
 from phe import paillier
 import json
 from random import *
@@ -10,6 +11,7 @@ from pymongo import MongoClient
 
 import os
 import pickle
+import hashlib
 
 
 app = FlaskAPI(__name__)
@@ -21,7 +23,7 @@ Connects with atlas db to stores values
 client = MongoClient("mongodb+srv://antonio:antonio@cluster0.hb8y0.mongodb.net/experiment?retryWrites=true&w=majority", ssl=True,ssl_cert_reqs='CERT_NONE')
 db = client.election  # create database or connect
 collection = db.vote
-number_votes =  db.number
+# number_votes =  db.number
 
 '''
 The commented section down here is used to create a pair of keys for H.E.
@@ -75,9 +77,43 @@ def new():#restart tallies to zero
         collection.delete_many({})# drop database
         nuevo = [str(public_key_server.encrypt(0).ciphertext()) for i in range(0,4)]#list lenght number of candidates        
 
-        collection.insert_one({"votes":nuevo})# insert new tally with zeros encrypted
+        collection.insert_one({"votes":nuevo, "verification_hash":""})# insert new tally with zeros encrypted
         return
 
+def hash_audit(values):
+    sum = 0
+    for i in values:
+        sum+=int(i)
+    temp_hash= str.encode(str(sum))  
+    return hashlib.pbkdf2_hmac('sha256', temp_hash, "salt".encode(), 5000).hex() # for audit
+
+@app.route("/audit", methods=['POST'])
+def audit():#restart tallies to zero
+
+    if request.method == 'POST':
+        verification_hash = json.loads(request.data)
+        # app.logger.info(type(verification_hash))
+        temp = [i for i in collection.find({"verification_hash":verification_hash})]
+        if not temp:
+            message = "The person has not vote or the vote was removed."
+            app.logger.info(message)
+            return json.dumps(message)
+
+        values = temp[0]['votes']
+        # app.logger.info(values)
+
+        val = hash_audit(values)
+        if val == verification_hash:
+            message = "Vote registered and intact."
+            app.logger.info(message)
+            result = message
+        else:
+            message = "Vote has been tampered"
+            app.logger.info(message)
+            result = message
+            
+        # app.logger.info(val)
+        return json.dumps(result)
 
 
 if __name__ == "__main__":

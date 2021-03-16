@@ -108,13 +108,13 @@ def check_signature_integrity(voter_public_key, value_hash, encrypted_message ):
 
 def hash_audit(values):
     sum = 0
-    seed(1)
-    salt_random = str(random()) #random salt to create unique hash for audit
+    # seed(1)
+    # salt_random = str(random()) #random salt to create unique hash for audit
     for i in values:
         sum+=int(i)
 
     temp_hash= str.encode(str(sum))  
-    return hashlib.pbkdf2_hmac('sha256', temp_hash, salt_random.encode(), 5000).hex() # for audit
+    return hashlib.pbkdf2_hmac('sha256', temp_hash, "salt".encode(), 5000).hex() # for audit
 
 '''
 Handles the process to add a vote to the tally

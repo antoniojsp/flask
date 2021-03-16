@@ -35,6 +35,7 @@ After starting the system, the landing page for the demo client can be visited i
 - Reset to Zero (`http://localhost:7000/new`)- resets the vote count for all candidates to zero.
 - Results (`http://localhost:7000/results`) - Shows the decrypted, plaintext tally of all ballots that have been collected so far.
 - Register New Voter (`http://localhost:7000/register`) - Shows the voter registration page where a voter can register to participate in the election.
+- Verify if voted was counted and not tampered. (http://localhost:7000/audit) - If looks up for the encrypted values of the tally at the moment of the casting, which are used to generate the hashing value display when someone vote and then allows comparison to check if it has been tampered or removed. 
 
 ## Authors
 * **Patrick Higgins** -  ([phiggin5@uoregon.edu](phiggin5@uoregon.edu))

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+
+
+
+</fieldset>
+
+
+<h1>Check if the ballot has been counted. </h1>
+
+{% for message in get_flashed_messages() %}
+<p><b>{{ message }}</b></p>
+{% endfor %}
+
+<form action="" method="post" id="hash_val" autocomplete="off">
+    <fieldset>
+        <legend>Check up if vote has been counted:</legend>
+
+        <div>    
+            <label for="hash">Hash: </label>
+            <input type="text" id="hash" name="hash" maxlength="500" required> 
+        </div>
+        <br>
+        <br>
+        <input type="submit" value="Submit">
+
+    
+  </form>
+<br>
+<br>
+
+* The updated encrypted tally is registered in the database everytime a voter cast a ballot. Only the voter have the hash, value which is generated right after casting the ballot by adding the values of the ciphertext values in the ballot and hash them. When the voter wants to check their ballot, they enter the hash value they got after they vote. The program will search for that hash value in the election database, get the ciphertext of the encrypted tally, perform the same hashing and compares the result with the one entered by the voter. If it's the same value, then the vote has been counted and not tamper, since we trust the service to record the vote as we casted it, but if the hash value is different, then the vote has been manipulated from the database side.
+
+ 
+
+{% endblock content %}
