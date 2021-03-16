@@ -30,10 +30,8 @@ $ docker-compose down #stop the demo system
 ```
 
 ## Using the Demo
-After starting the system, the demo client can be reached at `http://localhost:7000`. This should display the Index page, where a voter can enter their ID and password and cast their ballot.
-
-The landing page for the demo client is located at `http://localhost:7000/panel`, and contains a number of menu items useful for navigating and controlling the demo:
-- Index (`http://localhost:7000`)- The page where voters authenticate and cast their votes
+After starting the system, the landing page for the demo client can be visited in a web browser at `http://localhost:7000/panel`, which contains a menu of navigation and control items for viewing and using the demo:
+- Index (`http://localhost:7000`)- A page where voters can authenticate and cast their votes
 - Reset to Zero (`http://localhost:7000/new`)- resets the vote count for all candidates to zero.
 - Results (`http://localhost:7000/results`) - Shows the decrypted, plaintext tally of all ballots that have been collected so far.
 - Register New Voter (`http://localhost:7000/register`) - Shows the voter registration page where a voter can register to participate in the election.
