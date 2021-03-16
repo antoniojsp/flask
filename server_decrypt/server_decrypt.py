@@ -49,6 +49,9 @@ def key(): # send public key to the client to encrypt the ballot
         key['public_key'] = {'g': public_key_server.g, 'n': public_key_server.n} # values necessary to create a public key object in the client
         return json.dumps(key)
 
+'''
+Decrypt the results from the database and sends it to be displayed
+'''
 @app.route("/results", methods=['POST'])
 def results():
 
@@ -60,18 +63,17 @@ def results():
 
         return json.dumps(temp)
 
-# reset tally to zero for a new election
+'''
+Dropt the "election" database and created a new list of zeros ([0,0,0,0]), encryptsit with the public key  and sents it back to the database to reset the results
+'''
 @app.route("/new", methods=['POST'])
 def new():#restart tallies to zero
 
     if request.method == 'POST':
-        # app.logger.info(public_key_server.n)
-        collection.delete_many({})
-        nuevo = [str(public_key_server.encrypt(0).ciphertext()) for i in range(0,4)]#list lenght number of candidates
-        now = datetime.now()
-        timestamp = datetime.timestamp(now)
+        collection.delete_many({})# drop database
+        nuevo = [str(public_key_server.encrypt(0).ciphertext()) for i in range(0,4)]#list lenght number of candidates        
 
-        collection.insert_one({"timestamp":now ,"votes":nuevo})
+        collection.insert_one({"votes":nuevo})# insert new tally with zeros encrypted
         return
 
 if __name__ == "__main__":

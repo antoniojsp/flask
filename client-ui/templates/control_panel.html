@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Sample App - Homomorphic Encryption</title>
+    <title>Election App - Homomorphic Encryption</title>
     <!-- Change the localhost:5000 to a different host:port if you run client on a different host:port. 
      This sample suppose to run on dev box so localhost and default port 5000 makes sense. -->
     <link   href="http://localhost:5000/css/bootstrap.min.css" rel="stylesheet">
@@ -25,11 +25,16 @@
 
 
         <h1>Control panel</h1>
+        <div>        <a href="{{url_for('index') }}">Index</a>
+        </div>
+        <div>        <a href="{{url_for('new') }}">Reset to Zero</a>
+        </div>
+        <div>        <a href="{{url_for('results') }}">Show results</a>
+        </div>
+        <div>        <a href="{{url_for('register_voter') }}">Register New Voter</a>
+        </div>
 
-        <a href="{{url_for('index') }}">Index</a>
-        <a href="{{url_for('new') }}">Reset to Zero</a>
-        <a href="{{url_for('results') }}">Show results</a>
-        <a href="{{url_for('register_voter') }}">Register New Voter</a>
+
 
         <footer class="footer">
         </footer>

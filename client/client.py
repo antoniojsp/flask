@@ -25,18 +25,10 @@ import cryptocode
 import pymongo # modules
 from pymongo import MongoClient
 
-
 app = FlaskAPI(__name__)
 cors = CORS(app, resources={r'/*': {"origins": '*'}})
 
-client = MongoClient("mongodb+srv://antonio:antonio@cluster0.hb8y0.mongodb.net/experiment?retryWrites=true&w=majority", ssl=True,ssl_cert_reqs='CERT_NONE')
-db = client.register  # access database for voters
-collection = db.voter # collection of voters
-
-db1 = client.private  # access database for voter's private key  (password manager)
-password_manager = db1.private_key # for voters private key
-
-
+# helpers functions
 def encrypt(public, input):
 
     encrynumber_list = [public.encrypt(x) for x in input]
@@ -71,9 +63,14 @@ def hash_integrity(packet):
     for i in packet:
         value+= int(i[0])
     
-    return hashlib.pbkdf2_hmac('sha256', str.encode(str(value)), str.encode("salt"), 5000).hex()
+    return hashlib.pbkdf2_hmac('sha256', str.encode(str(value)), str.encode("antonio"), 5000).hex()
     # return str(value)
 
+def generate_hashes(password, salt):
+    password_string= str.encode(password)  
+    a = hashlib.pbkdf2_hmac('sha256', password_string, salt.encode(), 5000) # for encrypt
+    b = hashlib.pbkdf2_hmac('sha256', password_string, salt.encode(), 5001) # for aunthenticate
+    return a, b
 
 @app.route("/", methods=['GET','POST'])
 def process():
@@ -92,7 +89,7 @@ def process():
             input_val = int(data['input'])
 
             '''
-            Data checkers
+            Data validators
             '''
             #checks if no selection is made
             if input_val == -1:
@@ -112,30 +109,32 @@ def process():
             vote_list[input_val] = 1 # set to 1  the index number of the choosen candidate
             public_key_rec = get_public_key_he() #gets public key to encrypt the ballot for Homomorphic encryption
             ballot  = encrypt(public_key_rec, vote_list)# perform H.E encryption on the values from the list.
-
             '''
             Sign the ballot with the voter private key
+            - get salt from the password_manager
+            - hash with  the salt (5001 rounds)
+            - use this hash to authe. and get encryoted priv. key
+            - decrypt priv key with the hash + salt but with 5000 rounds
+            - use the encrypted values of the ballloot to generate a hash and sign it with priv key
             '''
-            password_string= str.encode(password)  #encode the text from the password
-            temp_salt = requests.post('http://password_manager:6000/salt',json = json.dumps([id_value]))#gets salt from the password  manager database to generate the hash value.
+            temp_salt = requests.post('http://password_manager:6000/salt',json = json.dumps([id_value]))#gets "salt" from the password  manager database to generate the hash value.
             salt = json.loads(temp_salt.text)
 
             if salt == 1: # if "salt" returns 1, then there is no associeted account with the voter
                 return warnings("Voter no registered")
 
-            # aunthenticate connection by hashing password with salt added
-            password_aunthticate = hashlib.pbkdf2_hmac('sha256', password_string, str.encode(salt), 5001)
+            #generates both hashes to authe. and decrypt the password_manager encrypted key
+            password_decrypt, password_aunthticate = generate_hashes(password, salt)
 
-            # obtain the private key
-            temp_private_key = requests.post('http://password_manager:6000/download',json = json.dumps([id_value, password_aunthticate.hex()])) #aunthenticate and download encrypted private key
+            # obtain the private key. sends the hashed password with salt and the id number
+            auth_kit = [id_value, password_aunthticate.hex()] # data need to auuthenticate and download encrypted key
+            temp_private_key = requests.post('http://password_manager:6000/download',json = json.dumps(auth_kit)) #aunthenticate and download encrypted private key
             private_key = json.loads(temp_private_key.text) # gets the encrypted privsate key or 1 if it's not successful
 
-            if private_key == 1: # if the password doesn't match, stop. It won't try  to decrypt
-                return warnings("Aunthentication failed")
+            if private_key == 1: # if the password_auth doesn't match inside password_manager, stop. It won't try  to decrypt
+                return warnings("Authentication failed")
 
-            password_hash = hashlib.pbkdf2_hmac('sha256', password_string, str.encode(salt), 5000)
-
-            decrypt_key = cryptocode.decrypt(private_key, password_hash.hex()) #encrypts the private key using  "password_hash"
+            decrypt_key = cryptocode.decrypt(private_key, password_decrypt.hex()) #encrypts the private key using  "password_hash"
 
             packet_values = ballot['values'] # extract raw encrypter ciphertext to sign up the code
             message = hash_integrity(packet_values)# created hash with the encrypted values of the ballot.
@@ -145,6 +144,7 @@ def process():
             "Paquete" contains the encrypted  ballot, the voter's id and the signature to check integrity
             This is the step where it's sent to the server
             '''
+
             paquete = [ballot, data['id_num'], encoded] #forms list with the parts to be sent.
             temp = requests.post('http://server',json = json.dumps(paquete))#send data to the server to be added to the tally. Data is already encrypted encrypted.
 

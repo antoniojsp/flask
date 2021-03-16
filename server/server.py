@@ -12,8 +12,6 @@ from flask_api import FlaskAPI, status, exceptions
 import os
 import pymongo # modules
 from pymongo import MongoClient
-#date
-from datetime import datetime
 #RSA
 import binascii
 import base64
@@ -54,15 +52,19 @@ def add_vote(tally_encrypt:list, vote_received_encrypt:list):#send public key to
     for i in range(len(tally_encrypt)): #perform an addition bewtween the value in the tally and the value in the vote (same position indicates same candidate)
         tally_encrypt[i]+= vote_received_encrypt[i]
 
+'''
+It look up in the "register" database for the vooter's public key and "has_voted" booolean.
+'''
 def search_voter_registration(id: str):
 
     for i in voters_info.find({'id':id}):# look up for the public key in the Authority database
         pub_key = i['pk']
-        has_voted = i['has_votes']
+        has_voted = i['has_voted']
 
     return pub_key, has_voted
 
        
+# gets from the decrypt_server the private key to perform homomorphic encryption/ additin
 def get_public_he():
     #get public key for h.e.
     url_key = 'http://server_decrypt:90/key'
@@ -71,18 +73,20 @@ def get_public_he():
     llave  = json.loads(key.text) # gets public key from the server_encrypt for h.e 
     return paillier.PaillierPublicKey(n=int(llave['public_key']['n'])) # create public key obj from the key sent by the server
 
+# returnn personalized messages for ajax
 def warnings(message):
     results = {"output":message}
     confirmation = json.dumps(results)
     app.logger.info(confirmation)
     return confirmation
 
+# generates hash values from the ballot encrypted ciphertext to verify integrity
 def hash_integrity(packet):
     value = 0
     for i in packet:
         value+= int(i[0])
 
-    result = hashlib.pbkdf2_hmac('sha256', str.encode(str(value)), str.encode("salt"), 5000).hex()
+    result = hashlib.pbkdf2_hmac('sha256', str.encode(str(value)), str.encode("antonio"), 5000).hex()
     return result
 
 
@@ -125,15 +129,19 @@ def process():
 
             if voters_info.count_documents({ "id": id_value }, limit = 1) != 0: # checks if the voter has been already register. NOTE: it's safe to assume that if a ballot reach this point, the voter existes since the client perform a pre-screening
 
-                voter_public_key, has_voted = search_voter_registration(id_value) #gets from the voter database the public key and
+                voter_public_key, has_voted = search_voter_registration(id_value) #gets from the voter database the public key 
+
                 value_hash = hash_integrity(package)
 
-                
                 if has_voted == True: # user has already cast a vote
-                    return warnings("Failure! Voter has already voted.")
+                    app.logger.info("voter already voted")
+
+                    return warnings("Error. Voter has already voted.")
                 try:
+                    app.logger.info("Good signature")
                     check_signature_integrity(voter_public_key, value_hash, encrypted_hash)
                 except:
+                    app.logger.info("Possible tampering")
                     return warnings("Error. Possible vote tampering.")
 
                 '''
@@ -157,16 +165,15 @@ def process():
                 '''
                 add_vote(encriptado_temp, vote_received_enc) # add the ballot to the tally
                 cipher_values = [str(i.ciphertext()) for i in encriptado_temp] # creates list with the ciphertext to be stored in mongodb
-                
                 '''
                 Insert the  updated tally to the election database
                 '''
-                tally_votes.insert_one({"timestamp":datetime.timestamp(datetime.now()), "votes":cipher_values}) # insert value to
+                tally_votes.insert_one({"votes":cipher_values}) # insert value to
 
                 '''
-                Update the information of the elector's database. Delete the public key to avoid make extra sure no votes cannot be  performer
+                Update the information of the elector's database. Delete the public key to avoid make extra sure that a person cannot vote twice.
                 '''
-                voters_info.update_one({'id':id_value}, {"$set":{"has_votes":True, "pk":""}})
+                voters_info.update_one({'id':id_value}, {"$set":{"has_voted":True, "pk":""}})
 
                 temp = {}
                 temp['output'] = "Success!" # confirmation

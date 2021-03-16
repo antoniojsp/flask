@@ -1,39 +1,36 @@
+#flask 
 from flask import Flask, render_template, json, request, flash, redirect, url_for
 import requests
 import os
+
 #register new voters
 import pymongo # modules
 from pymongo import MongoClient
+
 #RSA
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 import binascii
+
 #sign
 from Crypto.Signature import pkcs1_15
 from Crypto.Hash import SHA256
 import hashlib
 import cryptocode
 
-#create keys
-from Crypto.PublicKey import RSA
-from Crypto.Cipher import PKCS1_OAEP
-import binascii
-
-# for key encryption
-from werkzeug.security import generate_password_hash, check_password_hash
+# generate random salt
 import crypt  # generates salt
 
 #flask instance
 app = Flask(__name__)
 
 #message flash
-app.secret_key = "temporal location"
-
-#hash
-import hashlib
+app.secret_key = crypt.mksalt(crypt.METHOD_SHA512) #randooom value to show flask flash messagess
 
 #mongodb
 client = MongoClient("mongodb+srv://antonio:antonio@cluster0.hb8y0.mongodb.net/experiment?retryWrites=true&w=majority", ssl=True,ssl_cert_reqs='CERT_NONE')
+
+
 db = client.register  # acess/create database to register voters and public key
 collection = db.voter # collection of voters
 
@@ -43,7 +40,6 @@ password_manager = db1.private_key # for voters priv key
 # index. Where the vote is casted.
 @app.route('/', methods=['POST','GET'])
 def index():
-
     return render_template('home.html')
 
 # return results from server_decrypt
@@ -91,7 +87,6 @@ def generate_hashes(password, salt):
     #insert to private key (password manager) database
     password_string= str.encode(password)  
     a = hashlib.pbkdf2_hmac('sha256', password_string, salt.encode(), 5000) # for encrypt
-    # b = hashlib.pbkdf2_hmac('sha256', str.encode(a.hex()), salt.encode(), 1) # for aunthenticate
     b = hashlib.pbkdf2_hmac('sha256', password_string, salt.encode(), 5001) # for aunthenticate
     return a, b
 
@@ -115,13 +110,12 @@ def register_voter():
                 hash_code = fname+lname+date
                 hash_result = hashlib.sha256(hash_code.encode()) # generate a hash number from the name and id number.
 
-                
-                salt = crypt.mksalt(crypt.METHOD_SHA512) # salt to add the authen hash
+                salt = crypt.mksalt(crypt.METHOD_SHA512) # random salt to add the authen and decrypt hash
                 hash_encrypt, hash_authenticate = generate_hashes(password, salt) # get hashes to aunthentica and decrypt
-                priv_encoded = cryptocode.encrypt(priv.exportKey().decode('ascii'), hash_encrypt.hex()) # encrypt private key
+                priv_encoded = cryptocode.encrypt(priv.exportKey().decode('ascii'), hash_encrypt.hex()) # encrypt private key with hash_enncrypt
 
                 # adding to electors's database the id number, the hash for check if voted was countes, boolean if the person votes, public key (plain text, to verify signature from the cl
-                collection.insert_one({ "id":id_num, "hash":hash_result.hexdigest(), "has_votes":False, "pk": pub.exportKey().decode('ascii')})
+                collection.insert_one({ "id":id_num, "hash":hash_result.hexdigest(), "has_voted":False, "pk": pub.exportKey().decode('ascii')})
                 # adding to password manager the id number, the hash aunthentication, salt and the encrypted private key
                 password_manager.insert_one({"id":id_num, "hash":hash_authenticate.hex(), "salt":salt, "priv_key":priv_encoded})
                 flash("The voter with id #"+id_num+" has been registered. Hash value: "+ hash_result.hexdigest())
