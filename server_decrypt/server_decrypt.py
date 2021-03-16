@@ -1,13 +1,15 @@
 from phe import paillier
 import json
 from random import *
+# flask modules
 from flask import request, url_for
 from flask_api import FlaskAPI, status, exceptions
+# pymongo modules
 import pymongo # modules
 from pymongo import MongoClient
+
 import os
 import pickle
-from datetime import datetime
 
 
 app = FlaskAPI(__name__)
@@ -75,6 +77,8 @@ def new():#restart tallies to zero
 
         collection.insert_one({"votes":nuevo})# insert new tally with zeros encrypted
         return
+
+
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=90, debug=True)

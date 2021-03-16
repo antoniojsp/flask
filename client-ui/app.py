@@ -30,7 +30,6 @@ app.secret_key = crypt.mksalt(crypt.METHOD_SHA512) #randooom value to show flask
 #mongodb
 client = MongoClient("mongodb+srv://antonio:antonio@cluster0.hb8y0.mongodb.net/experiment?retryWrites=true&w=majority", ssl=True,ssl_cert_reqs='CERT_NONE')
 
-
 db = client.register  # acess/create database to register voters and public key
 collection = db.voter # collection of voters
 
@@ -59,6 +58,11 @@ def new():
 def panel():
     #delete the tally from mongodb and fill up a new one with all the stats in zero (encrypted)
     return render_template("control_panel.html")
+
+
+
+
+
 
 '''
 Voter registration:

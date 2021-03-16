@@ -22,6 +22,9 @@ from Crypto.Hash import SHA256
 
 import hashlib
 
+#random values
+from random import seed
+from random import random
 
 '''
 server.py connects with client.py and gets the encrypted ballot and perform the addition of the vote into the tally. It gets the public key from server_decrypt.py and does not handle the private key since we don't want to have the chance of having both keys in the same location in this server since there is sensitive data.
@@ -90,7 +93,7 @@ def hash_integrity(packet):
     return result
 
 
-
+# checks for the integrity of the signature of the packet sent by the client
 def check_signature_integrity(voter_public_key, value_hash, encrypted_message ):
 
     key = RSA.import_key(voter_public_key)
@@ -100,6 +103,18 @@ def check_signature_integrity(voter_public_key, value_hash, encrypted_message ):
     pkcs1_15.new(key).verify(h, decoded)
     app.logger.info("The signature is valid.")
     return True
+
+
+
+def hash_audit(values):
+    sum = 0
+    seed(1)
+    salt_random = str(random()) #random salt to create unique hash for audit
+    for i in values:
+        sum+=int(i)
+
+    temp_hash= str.encode(str(sum))  
+    return hashlib.pbkdf2_hmac('sha256', temp_hash, salt_random.encode(), 5000).hex() # for audit
 
 '''
 Handles the process to add a vote to the tally
@@ -135,24 +150,24 @@ def process():
 
                 if has_voted == True: # user has already cast a vote
                     app.logger.info("voter already voted")
+                    return warnings("Error. Vote already casted for this voter.")
 
-                    return warnings("Error. Voter has already voted.")
                 try:
-                    app.logger.info("Good signature")
                     check_signature_integrity(voter_public_key, value_hash, encrypted_hash)
+                    app.logger.info("Good signature")
                 except:
-                    app.logger.info("Possible tampering")
+                    app.logger.info("Possible tampering") # when there is a problem with the integrity of the signature, a modification can be assumed.
                     return warnings("Error. Possible vote tampering.")
 
                 '''
                 Gets public key from the decrypt_server and transform it to an object. It is used to transform the ciphertext of the current tally into EncryptedNumber objects that can perform addition with encrypted data
                 '''
-                public_key_rec = get_public_he() #server_decrypt holds private and public key
+                public_key_rec = get_public_he() #server_decrypt holds private and public key, here the public key is obtanained
 
                 '''
                 Encrypted ballot is sent from the client in ciphertext. With the public key, this ciphertext is transformed in EncryptedNumber with H.E properties. THis contains the encrypted ballot.
                 '''
-                vote_received_enc = [paillier.EncryptedNumber(public_key_rec, int(x[0]), int(x[1])) for x in package] # convert the cipher values received front the 
+                vote_received_enc = [paillier.EncryptedNumber(public_key_rec, int(x[0]), int(x[1])) for x in package] # convert the cipher values oof the ballot  to objects.
 
                 '''
                 Extract from the election database the current tally and transform the ciphertext into encryptednumber objects with encrypted information of the tally that can perform additions.
@@ -165,18 +180,40 @@ def process():
                 '''
                 add_vote(encriptado_temp, vote_received_enc) # add the ballot to the tally
                 cipher_values = [str(i.ciphertext()) for i in encriptado_temp] # creates list with the ciphertext to be stored in mongodb
+
+                verification_hash = hash_audit(cipher_values)
+                app.logger.info(verification_hash)
+
                 '''
                 Insert the  updated tally to the election database
                 '''
-                tally_votes.insert_one({"votes":cipher_values}) # insert value to
-
+                try:
+                    tally_votes.insert_one({"votes":cipher_values, "verification_hash":verification_hash}) # insert value to
+                except:
+                    '''
+                    If for any reason, writting the ballot fails, it stops anything else and return error. No roll back needed
+                    '''
+                    message = "Error. Updated tally where not registered correctly. Try again"
+                    app.logger.info(message)
+                    return warnings(message)
                 '''
                 Update the information of the elector's database. Delete the public key to avoid make extra sure that a person cannot vote twice.
                 '''
-                voters_info.update_one({'id':id_value}, {"$set":{"has_voted":True, "pk":""}})
+                try:
+                    voters_info.update_one({'id':id_value}, {"$set":{"has_voted":True, "pk":""}})
+                except:
+                    '''
+                    If updating the information of the voters fails for any reason (update the voters "has_voted" is not set to true) then it rolls back the vote just entered and ask to try again.
+                    '''
+                    message = "Error. The voter's status couldn't be updated. Rolling back vote. Try  again"
+                    votes_list = [i for i in tally_votes.find()]
+                    tally_votes.delete_one({'_id':votes_list[-1]["_id"]})
+                    app.logger.info(message)
+                    return warnings(message)
+
 
                 temp = {}
-                temp['output'] = "Success!" # confirmation
+                temp['output'] = "Success! For audit, please keep this code: " + verification_hash # confirmation. If gets to this point we can assume the vote has been registered correctly
 
             else:
                 app.logger.info("Voter is not registered!")

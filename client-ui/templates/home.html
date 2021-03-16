@@ -50,14 +50,7 @@ function getRadioVal(form, name) {
                       data: input_json,
                       dataType: 'json',
                       success: function(data) {
-                         // console.log(data)
                         $("#message").html(data.output);
-                        if (data.output == "Success!"){
-                        
-                        setTimeout(function(){location.reload(true);},3000);
-                        
-                        };
-
                       }
 
                  });

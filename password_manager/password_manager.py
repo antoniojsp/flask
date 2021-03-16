@@ -43,7 +43,6 @@ When the user register to vote, to public key goes to the electos database and t
 '''
 return salts when the client ask. that salt is used to hash the master password
 '''
-
 @app.route("/salt", methods=['GET','POST'])
 def salt():
     if request.method == 'POST':
@@ -61,7 +60,6 @@ def salt():
 '''
 After the salt is obtain, the master password is hashed using this salt and the hash is sent to download() in the password_manager for aunthetication. This hash (with 5000 rounnds) will be hashed one more round and compare with the hash stored inn the database for the id provided. Everythinng checks out, it sent the encrypted private key back to the cliene, otherwise, it returns 1 as a value to indicate error.
 '''
-
 @app.route("/download", methods=['GET','POST'])
 def download():
     if request.method == 'POST':
@@ -71,10 +69,10 @@ def download():
             temp = i
 
         #if fails, returns 1
-        if temp['hash'] != id[1]:
-            return json.dumps(1)
+        if temp['hash'] != id[1]:# id[1] can be only obtain by hashing the right master passwoord.
+            return json.dumps(1) #returns 1 if fails
 
-        return json.dumps(temp['priv_key'])
+        return json.dumps(temp['priv_key'])# otherwise, sends encrypted private key
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=6000, debug=True)
